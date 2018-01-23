@@ -1,1 +1,1 @@
-web: npm install typescript
+web: npm run serve
