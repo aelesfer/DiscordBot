@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Git folder
+.git
+
+# Visual studio stuff
+.vscode
+
+# Build folder
+dist/
