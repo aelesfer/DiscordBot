@@ -20,5 +20,5 @@ setInterval(() => {
 // Conexión con la base de datos
 mongoose.connect(process.env.DISCORDBOT_MONGODB);
 
-mongoose.connection.on('error', error => console.log(error));
-mongoose.connection.once('open', () => console.log('connectada'));
+mongoose.connection.on('error', error => Log.error('index.ts', JSON.stringify(error).toString())); // Hace falta esto??? Seria mejor convertirlo en el propio LOG.error
+mongoose.connection.once('open', () => Log.log('index.ts', 'Conectado a la base de datos'));
