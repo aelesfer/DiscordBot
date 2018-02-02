@@ -1,5 +1,4 @@
 import * as mongoose from 'mongoose';
-import * as Moment from 'moment';
 
 export interface ILog extends mongoose.Document {
     timestamp: Date;
@@ -37,5 +36,6 @@ function createLog(type: string, origin: string, msg: string): mongoose.Document
     log.type = type;
     log.origin = origin;
     log.message = msg;
+    console.log(log.type + ' ' + log.origin + ' ' + log.message);
     return log;
 }

@@ -1,3 +1,5 @@
+import { GplusBot } from './components/gplus.bot';
+import { GplusService } from './services/gplus.service';
 import { DiscordMessage } from './model/discord-message.model';
 import { DiscordService } from './services/discord.service';
 import { Api } from './model/api.model';
@@ -20,12 +22,7 @@ setInterval(() => {
 
 // Conexión con la base de datos
 mongoose.connect('mongodb://mongoadmin:Tharkun%245mlab@ds113098.mlab.com:13098/heroku_d08mjspf').then(() => {
-  let community = new GplusCommunity({
-    id: '103837790883857207396',
-    name: 'Juegos de Rol en Español',
-    processDate: '2018/1/28'
-  });
-  community.save();
+  new GplusBot().load();
 });
 
 mongoose.connection.on('error', error => Log.error('index.ts', JSON.stringify(error).toString())); // Hace falta esto??? Seria mejor convertirlo en el propio LOG.error

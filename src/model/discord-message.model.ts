@@ -2,82 +2,68 @@ import { Log } from './log.model';
 import { Document, Model, Schema, Mongoose, mongo } from 'mongoose';
 import * as mongoose from 'mongoose';
 import * as Striptags from 'striptags';
+import { RichEmbed } from 'discord.js';
 
-export interface IDiscordMessage extends Document {
-    webhookName: string;
-    url: string;
-    title: string;
-    status: 'pending' | 'sent' | 'failed';
+export class DiscordMessage {
+    author?: { name: string; url?: string; icon_url?: string; };
+    color?: number;
     description?: string;
-    author?: {name: string, thumbnail?: string};
-    footer?: string;
-    thumbmail?: string;
-    setWebhookName(name: string): this;
-    setUrl(url: string): this;
-    setTitle(title: string): this;
-    setDescription(description: string): this;
-    setAuthor(author: {name: string, thumbnail?: string}): this;
-    setFooter(footer: string): this;
-    setThumbnail(thumbnail: string): this;
-}
-
-export interface IDiscordMessageModel extends Model<IDiscordMessage> {}
-
-const authorSchema = new Schema({
-    name: {type: String, required: true},
-    thumbnail: {type: String, required: false}
-});
-
-const schema = new Schema({
-    webhookName: {type: String, required: true},
-    url:            {type: String, required: true},
-    title:          {type: String, required: true, set: title => Striptags(title).substring(0, 80)},
-    status:         {type: String, required: true, enum: ['pending', 'sent', 'failed'], default: 'pending'},
-    description:    {type: String, set: desc => Striptags(desc).substring(0, 300)},
-    author: {
-        name:       {type: String, required: true},
-        thumbnail:  {type: String, required: false}
-    },
-    footer: String,
-    thumbnail: String
-    })
-    .method('setWebhookName', function(name: string): IDiscordMessageModel {
-        this.webhookName = name;
+    fields?: { name: string; value: string; inline?: boolean; }[];
+    footer?: { text?: string; icon_url?: string; };
+    image?: { url: string; height?: number; width?: number; };
+    thumbnail?: { url: string; height?: number; width?: number; };
+    timestamp?: Date;
+    title?: string;
+    url?: string;
+    
+    setAuthor(name: string, url?: string, icon_url?: string): this{
+        this.author = {name: name, url: url, icon_url: icon_url};
         return this;
-    })
-    .method('setUrl', function(url: string): IDiscordMessageModel {
+    }
+    setColor(color: number): this{
+        this.color = color;
+        return this;
+    }
+    setDescription(description: string): this{
+        this.description = description.substring(0, 320);
+        if (description.length > 320) {
+            this.description += '...';
+        }
+        return this;
+    }
+    setFields(fields: [{name: string, value: string, inline?: boolean}]): this{
+        this.fields = fields;
+        return this;
+    }
+    addField(name: string, value: string, inline?: boolean): this{
+        this.fields.push({name: name, value: value, inline: inline});
+        return this;
+    }
+    setFooter(text?: string, icon_url?: string): this{
+        this.footer = {text: text, icon_url: icon_url};
+        return this;
+    }
+    setImage(url: string, height?: number, width?: number): this{
+        this.image = {url: url, height: height, width: width};
+        return this;
+    }
+    setThumbnail(url: string, height?: number, width?: number): this{
+        this.thumbnail = {url: url, height: height, width: width};
+        return this;
+    }
+    setTimestamp(timestamp: Date): this{
+        this.timestamp = timestamp;
+        return this;
+    }
+    setTitle(title: string): this{
+        this.title = title.substring(0, 80);
+        if (title.length > 80) {
+            this.title += '...';
+        }
+        return this;
+    }
+    setUrl(url: string): this{
         this.url = url;
         return this;
-    })
-    .method('setTitle', function(title: string): IDiscordMessageModel {
-        this.title = title;
-        return this;
-    })
-    .method('setDescription', function(description: string): IDiscordMessageModel {
-        this.description = description;
-        return this;
-    })
-    .method('setAuthor', function(author: string): IDiscordMessageModel {
-        this.author = author;
-        return this;
-    })
-    .method('setFooter', function(footer: string): IDiscordMessageModel {
-        this.footer = footer;
-        return this;
-    })
-    .method('setThumbnail', function(thumbnail: string): IDiscordMessageModel {
-        this.thumbnail = thumbnail;
-        return this;
-    });
-    
-const DiscordMessage = mongoose.model<IDiscordMessage>('DiscordMessage', schema);
-DiscordMessage.on('error', error => {
-    Log.error('DiscordMessageModel.ts', 'Error al realizar una operación con este modelo');
-    Log.error('DiscordMessageModel.ts', error);
-});
-
-export { DiscordMessage  };
-// export const DiscordMessage = mongoose.model<IDiscordMessage>('DiscordMessage', schema) as IDiscordMessageModel;
-
-
-
+    }
+}
