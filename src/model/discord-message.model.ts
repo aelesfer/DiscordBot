@@ -1,9 +1,3 @@
-import { Log } from './log.model';
-import { Document, Model, Schema, Mongoose, mongo } from 'mongoose';
-import * as mongoose from 'mongoose';
-import * as Striptags from 'striptags';
-import { RichEmbed } from 'discord.js';
-
 export class DiscordMessage {
     author?: { name: string; url?: string; icon_url?: string; };
     color?: number;

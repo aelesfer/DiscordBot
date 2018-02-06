@@ -1,3 +1,5 @@
+import { DiscordService } from './../services/discord.service';
+import { DiscordMessage } from './../model/discord-message.model';
 import { GplusPost } from './../model/gplus-post.model';
 import { IGplusCommunity, GplusCommunity } from './../model/gplus-community.model';
 import { GplusService } from './../services/gplus.service';
@@ -8,8 +10,11 @@ export class GplusBot {
 
     private maxHistoryDate: string = Moment().subtract(4, 'days').format('YYYY/M/D');
     private scheduleFrequency = '*/1 * * * *';
+    private discordService: DiscordService;
 
-    constructor() {}
+    constructor(discordService: DiscordService) {
+        this.discordService = discordService;
+    }
 
     public async load(): Promise<any> {
         (await GplusCommunity.find({}).exec())
@@ -23,7 +28,7 @@ export class GplusBot {
         community.processingDate = this.maxHistoryDate;
         return new Promise((res, rej) => {
             GplusService.getActivityFeed(community).then(feed => {
-                feed.forEach(post => this.processPost(post));
+                this.processPosts(feed);
                 res();
             });
         });
@@ -37,27 +42,25 @@ export class GplusBot {
                 community.processingDate = today;
             }
             GplusService.getActivityFeed(community).then(feed => {
-                feed.forEach(post => this.processPost(post));
+                this.processPosts(feed);
             });
         });
     }
 
-    private processPost(post: any) {
-        // LOGICA A IMPLEMENTAR
-        // 1. Recupera lista de pots, ya con sus datos
-        // 2. Revisa si el ID o la URL ya existe en la BD (tal vez solo la url?)
-        //      2.1. Si es un post reshared, revisar con la URL de data.object.url
-        // 3. Si no existe, guarda el post en BD con la id y url correspondientes, y el estado "pending"
-        // 4. Intenta enviarlo por discord. Si funciona pasa el estado a "sent", si no a "failed" (graba error?)
-        GplusPost.findOne({id: post.id}).then(exists => {
-            if (!exists) {
-                const newPost = new GplusPost({});
-                newPost.id = post.id;
-                newPost.title = post.title + '.';
-                newPost.url = post.url;
-                newPost.published = Moment().toDate();
-                newPost.save();
-            }
-        });
+    private async processPosts(postsId: string[]) {
+        (await Promise.all(postsId.map(postId => GplusService.getActivity(postId))))
+            .forEach(async post => {
+                if (await GplusPost.count({id: post.id}).exec() === 0) {
+                    const message = new DiscordMessage()
+                        .setAuthor(post.actor.name, post.actor.url, post.actor.image)
+                        .setDescription(post.data.description)
+                        .setImage(post.data.image)
+                        .setTitle(post.title)
+                        .setUrl(post.url);
+                    this.discordService.sendMessage('Gplus', message);
+                    // Procesar en discord
+                    post.save();
+                }
+            });
     }
 }
