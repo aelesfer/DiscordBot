@@ -1,8 +1,7 @@
 import { DiscordMessage } from './../model/discord-message.model';
-import { Client, Webhook, RichEmbed } from 'discord.js';
+import { Client, Webhook, RichEmbed, Message, WebhookMessageOptions } from 'discord.js';
 import { Api, IApi } from './../model/api.model';
 import { Log } from './../model/log.model';
-import * as Striptags from 'striptags';
 
 export class DiscordService {
 
@@ -30,22 +29,17 @@ export class DiscordService {
         return this;
     }
 
-    public sendMessage(webhookID: string, message: DiscordMessage): void {
-        this.webhooks.find(webhook => webhook.name === webhookID)
-            .sendMessage(this.messageToEmbed(message));
+    public sendMessage(webhookID: string, message: WebhookMessageOptions): Promise<Message|Message[]> {
+        return new Promise((resolve, reject) => {
+            this.webhooks.find(webhook => webhook.name === webhookID)
+                .sendMessage('', message)
+                .then(msg => resolve(msg))
+                .catch(err => Log.error(this.fileName, err));
+        });
     }
 
     private async loadWebhooks() {
         this.webhooks = (await this.client.guilds.first().fetchWebhooks()).array();       
     }
-
-    private messageToEmbed(message: DiscordMessage): RichEmbed {
-        return new RichEmbed()
-            .setURL(message.url)
-            .setTitle(message.title)
-            .setDescription(message.description)
-            .setAuthor(message.author.name, message.author.icon_url)
-            .setFooter(message.footer)
-            .setThumbnail(message.image.url);
-    }
+    
 }

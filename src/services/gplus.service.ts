@@ -1,4 +1,4 @@
-import { IGplusPost, GplusPost } from './../model/gplus-post.model';
+import { GplusPost, IGplusPost } from './../model/gplus-post.model';
 import { Log } from './../model/log.model';
 import { Api, IApi } from './../model/api.model';
 import { GplusCommunity, IGplusCommunity } from './../model/gplus-community.model';
@@ -40,8 +40,7 @@ export class GplusService {
                         const data = response.data;
                         params.pageToken = data.nextPageToken;
                         makePetition = (data.items.length < 20) ? false : true;
-                        data.items
-                            .map(post => (post.verb === 'post') ? post.id : post.object.id)
+                        data.items.map(post => (post.verb === 'post') ? post.id : post.object.id)
                             .forEach(postId => posts.push(postId));
                         res();
                     }

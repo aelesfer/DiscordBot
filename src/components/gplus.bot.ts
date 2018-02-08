@@ -1,66 +1,54 @@
+import { Log } from './../model/log.model';
 import { DiscordService } from './../services/discord.service';
 import { DiscordMessage } from './../model/discord-message.model';
-import { GplusPost } from './../model/gplus-post.model';
+import { GplusPost, IGplusPost } from './../model/gplus-post.model';
 import { IGplusCommunity, GplusCommunity } from './../model/gplus-community.model';
 import { GplusService } from './../services/gplus.service';
 import * as Moment from 'moment';
 import * as Cron from 'node-cron';
+import { WebhookMessageOptions } from 'discord.js';
+
+
 
 export class GplusBot {
 
-    private maxHistoryDate: string = Moment().subtract(4, 'days').format('YYYY/M/D');
-    private scheduleFrequency = '*/1 * * * *';
     private discordService: DiscordService;
 
     constructor(discordService: DiscordService) {
         this.discordService = discordService;
     }
 
-    public async load(): Promise<any> {
-        (await GplusCommunity.find({}).exec())
-            .forEach(async(community) => {
-                await this.loadOldCommunityPosts(community);
-                this.createLoadCron(community);
-            });   
-    }
+    public async load() {
+        const maxHistoryDate: string = Moment().subtract(4, 'days').format('YYYY/M/D');
+        const everyMinute = '*/1 * * * *';
+        const communities = await GplusCommunity.find({}).exec();
 
-    private loadOldCommunityPosts(community: IGplusCommunity): Promise<any>{
-        community.processingDate = this.maxHistoryDate;
-        return new Promise((res, rej) => {
-            GplusService.getActivityFeed(community).then(feed => {
-                this.processPosts(feed);
-                res();
-            });
-        });
-        
-    }
-
-    private createLoadCron(community: IGplusCommunity): void {
-        Cron.schedule(this.scheduleFrequency, () => {
-            const today = Moment().format('YYYY/M/D');
-            if (community.processingDate !== today) {
+        communities.forEach(async(community) => {
+            community.processingDate = maxHistoryDate;
+            await this.loadPosts(community);
+            Cron.schedule(everyMinute, () => {
+                const today = Moment().format('YYYY/M/D');
                 community.processingDate = today;
-            }
-            GplusService.getActivityFeed(community).then(feed => {
-                this.processPosts(feed);
+                this.loadPosts(community);
             });
         });
     }
 
     private async processPosts(postsId: string[]) {
-        (await Promise.all(postsId.map(postId => GplusService.getActivity(postId))))
-            .forEach(async post => {
-                if (await GplusPost.count({id: post.id}).exec() === 0) {
-                    const message = new DiscordMessage()
-                        .setAuthor(post.actor.name, post.actor.url, post.actor.image)
-                        .setDescription(post.data.description)
-                        .setImage(post.data.image)
-                        .setTitle(post.title)
-                        .setUrl(post.url);
-                    this.discordService.sendMessage('Gplus', message);
-                    // Procesar en discord
-                    post.save();
-                }
-            });
+        postsId.forEach(async(postId) => {
+            const existsInDb = await GplusPost.count({postId: postId}).exec() !== 0;
+            if (!existsInDb) {
+                const post = await GplusService.getActivity(postId);
+                this.discordService.sendMessage('Test', post.toDiscordMessage())
+                    .then(() => post.save())
+                    .catch(err => Log.error('gplus.bot.ts', err));
+            }
+        });
     }
+
+    private async loadPosts(community: IGplusCommunity) {
+        const feed = await GplusService.getActivityFeed(community);
+        this.processPosts(feed);
+    }
+
 }
