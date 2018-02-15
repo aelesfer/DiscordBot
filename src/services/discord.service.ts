@@ -1,45 +1,44 @@
 import { DiscordMessage } from './../model/discord-message.model';
 import { Client, Webhook, RichEmbed, Message, WebhookMessageOptions } from 'discord.js';
 import { Api, IApi } from './../model/api.model';
-import { Log } from './../model/log.model';
+import { LogService } from './log.service';
 
 export class DiscordService {
-
-    public fileName = 'DiscordService.ts';
+    
     private apiName = 'discord';
     private token: String;
-    private client: Client;
     private webhooks: Webhook[];
-
-    constructor() {
-        this.client = new Client();
-    }
+    private client: Client = new Client();
+    private logService = new LogService('discord.service.ts');
 
     public async load(): Promise<this> {
-        Log.log(this.fileName, 'Iniciando DiscordService...');
-        const api = <IApi>await Api.findOne({name: this.apiName}).lean().exec();
-        await this.client.login(api.key);
-        Log.log(this.fileName, '... cliente Discord cargado...');
-        this.loadWebhooks();
-        Log.log(this.fileName, 'DiscordService cargado con éxito');
-        this.client.on('error', error => {
-            Log.error(this.fileName, 'Error en el cliente de Discord');
-            Log.error(this.fileName, error.message);
-        });
+        this.logService.log('Iniciando DiscordService...');
+        try {
+            const api = <IApi>await Api.findOne({name: this.apiName}).lean().exec();
+            await this.client.login(api.key);
+            this.logService.log('... cliente Discord cargado...');
+            await this.loadWebhooks();
+            this.logService.log('DiscordService cargado con éxito');
+            this.client.on('error', error => {
+                this.logService.error('Error en el cliente de Discord', error.message);
+            });
+        } catch (e) {
+            this.logService.error('Error en la carga de DiscordService', e);
+            throw e;
+        }
+        
         return this;
     }
 
     public sendMessage(webhookID: string, message: WebhookMessageOptions): Promise<Message|Message[]> {
-        return new Promise((resolve, reject) => {
-            this.webhooks.find(webhook => webhook.name === webhookID)
-                .sendMessage('', message)
-                .then(msg => resolve(msg))
-                .catch(err => Log.error(this.fileName, err));
-        });
+        return this.webhooks.find(webhook => webhook.name === webhookID)
+            .sendMessage('', message)
+            .catch(err => { this.logService.error('Error al mandar mensaje a Discord', err); throw err; });
     }
 
     private async loadWebhooks() {
-        this.webhooks = (await this.client.guilds.first().fetchWebhooks()).array();       
+        this.webhooks = (await this.client.guilds.first().fetchWebhooks()).array();
+        this.logService.log('... Webhooks del servidor cargados...');
     }
     
 }

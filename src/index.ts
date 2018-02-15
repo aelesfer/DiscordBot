@@ -21,10 +21,14 @@ setInterval(() => {
   }, 900000);
 
 // Conexión con la base de datos
-mongoose.connect('mongodb://mongoadmin:Tharkun%245mlab@ds113098.mlab.com:13098/heroku_d08mjspf').then(async() => {
-  const discordService = await new DiscordService().load();
-  new GplusBot(discordService).load();
-});
+mongoose.connect('mongodb://mongoadmin:Tharkun%245mlab@ds113098.mlab.com:13098/heroku_d08mjspf')
+  .then(async() => {
+    const discordService = await new DiscordService().load();
+    new GplusBot(discordService).load(); })
+  .catch(err => {
+    Log.error('index.ts', 'Could not connect to MongoDB');
+    Log.error('index.ts', err);
+    process.exit();
+  });
 
-mongoose.connection.on('error', error => Log.error('index.ts', JSON.stringify(error).toString())); // Hace falta esto??? Seria mejor convertirlo en el propio LOG.error
 mongoose.connection.once('open', () => Log.log('index.ts', 'Conectado a la base de datos'));

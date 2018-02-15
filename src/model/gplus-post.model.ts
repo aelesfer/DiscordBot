@@ -8,9 +8,8 @@ import * as HtmlEntities from 'html-entities';
 
 const HtmlTranslator = new HtmlEntities.XmlEntities();
 
+
 export interface IGplusPost extends DiscordMessage, Post, Document { 
-    // Non persisted properties
-    // Methods
     toDiscordMessage(): DiscordMessage;
 }
 
@@ -23,7 +22,8 @@ const GplusPostSchema = new Schema({
     created: {type: String, required: true, default: Date.now},
     status: {type: String, enum: ['pending', 'processed', 'failed']}
 });
-GplusPostSchema.static('fromApi', fromApi)
+GplusPostSchema
+    .static('fromApi', fromApi)
     .method('addField', DiscordMessage.prototype.addField)
     .method('attachFile', DiscordMessage.prototype.attachFile)
     .method('setAuthor', DiscordMessage.prototype.setAuthor)
@@ -40,10 +40,12 @@ GplusPostSchema.static('fromApi', fromApi)
     });
 
 const GplusPost = mongoose.model<IGplusPost>('GplusPost', GplusPostSchema) as GplusPostModel;
-GplusPost.on('error', error => {
+    GplusPost.on('error', error => {
     Log.error('gplus-post.model.ts', 'Error al realizar una operación con este modelo');
     Log.error('gplus-post.model.ts', error);
 });
+
+//////////////
 
 function fromApi(data: any): IGplusPost {
     const post: IGplusPost = new GplusPost();
@@ -73,4 +75,6 @@ function removeHtml(data: string): string {
     return returnData;        
 }
 
+///////////////////
+    
 export { GplusPost };
